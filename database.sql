@@ -535,10 +535,9 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- qrmenu_sepet_db.users: ~3 rows (yaklaşık) tablosu için veriler indiriliyor
 INSERT INTO `users` (`id`, `id_kullanici`, `name`, `email`, `yetki`, `kullanicitipi`, `subeyetki`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) VALUES
-	(1, 1, 'Oğuzhan Karacabay', 'oguzhankrcb@gmail.com', 'tahsilat|odeme|satisrapor', '0', '1|2|3', '2021-07-26 11:45:18', '$2y$10$Se2TwX5YQkO2Torfy1miG.Aamu1fTTojULoIi6uFiJuwUe95RX2BK', 'e4gBfHbXFd', NULL, NULL),
-	(2, 2, 'Ender Eravcı', 'eeravci@gmail.com', 'tahsilat|odeme|satisrapor', '1', '1|2|3', '2021-07-26 11:45:18', '$2y$10$01QABqZMPx.RJSqub3bB1OGXKX99aj6IBSVkg8pfvdfUUh8RbQHDa', 'AOgKNyAMJq', NULL, NULL),
-	(3, 3, 'Fuat', 'Bilkay-47@hotmail.com', '123', '123', '1', NULL, '$2y$10$01QABqZMPx.RJSqub3bB1OGXKX99aj6IBSVkg8pfvdfUUh8RbQHDa', NULL, NULL, NULL);
-
+(1, 1, 'Test Kullanici', 'test1@example.com', '1', '1|2|3', '1', NULL, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NOW(), NOW()),
+(2, 2, 'Test Kullanici 2', 'test2@example.com', '1', '1|2|3', '1', NULL, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NOW(), NOW()),
+(3, 3, 'Test Kullanici 3', 'test3@example.com', '1', '1|2|3', '1', NULL, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NOW(), NOW());
 -- tablo yapısı dökülüyor qrmenu_sepet_db.waiter_calls
 CREATE TABLE IF NOT EXISTS `waiter_calls` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
