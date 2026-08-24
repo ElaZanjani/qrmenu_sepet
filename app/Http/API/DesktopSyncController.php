@@ -157,7 +157,7 @@ class DesktopSyncController extends Controller
 
         return response()->json([
             'success' => true,
-            'menu_guncellenme_tarihi' => optional(DB::table('t_urunkart')->latest('updated_at')->first())->updated_at,
+            'menu_guncellenme_tarihi' => optional(DB::table('t_urunkart')->latest('Upd_Tarih')->first())->Upd_Tarih,
             'acik_masa_sayisi' => $acikMasalar->count(),
             'masalar' => $acikMasalar->map(fn ($m) => [
                 'id' => $m->id,

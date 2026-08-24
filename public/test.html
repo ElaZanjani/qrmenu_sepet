@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Masaüstü API Test Sayfası</title>
+<style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
+    h1 { color: #022C22; }
+    .box { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    label { display: block; font-weight: bold; margin-top: 10px; margin-bottom: 4px; font-size: 13px; color: #555; }
+    input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button { margin-top: 14px; background: #047857; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #022C22; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 14px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+    .ok { color: #047857; font-weight: bold; }
+    .hata { color: #dc2626; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Masaüstü API Test Sayfası</h1>
+<p>Sunucun (<code>php artisan serve</code>) çalışıyor olmalı.</p>
+
+<div class="box">
+    <h3>1) Giriş Yap (Token Al)</h3>
+    <label>Sunucu Adresi</label>
+    <input id="taban-url" value="http://127.0.0.1:8000">
+    <label>E-posta</label>
+    <input id="email" value="mikale@centercafe.com">
+    <label>Şifre</label>
+    <input id="sifre" value="MikaleSecure2026!" type="text">
+    <button onclick="girisYap()">Giriş Yap</button>
+    <div id="giris-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>2) Durum Sorgula</h3>
+    <button onclick="durumSorgula()">Durumu Getir</button>
+    <div id="durum-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>3) Masa Senkron Testi (Kasa → Web)</h3>
+    <p>"Test Masası" adında, 150 TL borçlu bir masa gönderir.</p>
+    <button onclick="masaSenkronTest()">Test Masası Gönder</button>
+    <div id="masa-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>4) Menü Çekme Testi (Web → Kasa)</h3>
+    <button onclick="menuCekTest()">Menüyü Çek</button>
+    <div id="menu-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>5) Bekleyen Web Siparişlerini Çekme Testi</h3>
+    <button onclick="siparisCekTest()">Bekleyen Siparişleri Getir</button>
+    <div id="siparis-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>6) Gün Sonu Cirosu Gönderme Testi (Kasa → Web)</h3>
+    <button onclick="kasaSenkronTest()">Test Z-Raporu Gönder</button>
+    <div id="kasa-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>7) Garson Çağrılarını Çekme Testi</h3>
+    <button onclick="garsonCekTest()">Bekleyen Garson Çağrılarını Getir</button>
+    <div id="garson-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<div class="box">
+    <h3>8) Tekil Ürün Çekme Testi</h3>
+    <label>Ürün ID (örn: 2)</label>
+    <input id="urun-id" value="2">
+    <button onclick="urunCekTest()">Ürünü Getir</button>
+    <div id="urun-sonuc" style="margin-top:14px;"></div>
+</div>
+
+<script>
+let aktifToken = null;
+
+async function girisYap() {
+    const taban = document.getElementById('taban-url').value.replace(/\/$/, '');
+    const email = document.getElementById('email').value;
+    const sifre = document.getElementById('sifre').value;
+    const sonucDiv = document.getElementById('giris-sonuc');
+    sonucDiv.innerHTML = "İstek gönderiliyor...";
+
+    try {
+        const res = await fetch(taban + '/api/v1/desktop/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ email, password: sifre })
+        });
+        const metin = await res.text();
+        let data;
+        try { data = JSON.parse(metin); } catch (e) {
+            sonucDiv.innerHTML = '<p class="hata">Sunucu HTML/hata sayfası döndü (HTTP ' + res.status + ').</p><pre>' + metin.substring(0, 3000).replace(/</g,'&lt;') + '</pre>';
+            return;
+        }
+
+        if (data.status === 'success') {
+            aktifToken = data.token;
+            sonucDiv.innerHTML = '<p class="ok">Giriş başarılı! Token alındı.</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        } else {
+            sonucDiv.innerHTML = '<p class="hata">Giriş başarısız</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+    } catch (err) {
+        sonucDiv.innerHTML = '<p class="hata">Bağlantı hatası: ' + err.message + '</p>';
+    }
+}
+
+async function ortakIstek(yol, secenekler, sonucId) {
+    const taban = document.getElementById('taban-url').value.replace(/\/$/, '');
+    const sonucDiv = document.getElementById(sonucId);
+
+    if (!aktifToken) {
+        sonucDiv.innerHTML = '<p class="hata">Önce giriş yapmalısın!</p>';
+        return;
+    }
+
+    sonucDiv.innerHTML = "İstek gönderiliyor...";
+
+    try {
+        const res = await fetch(taban + yol, {
+            method: secenekler.method,
+            headers: Object.assign({}, secenekler.headers || {}, { 'Authorization': 'Bearer ' + aktifToken, 'Accept': 'application/json' }),
+            body: secenekler.body
+        });
+        const metin = await res.text();
+        let data;
+        try { data = JSON.parse(metin); } catch (e) {
+            sonucDiv.innerHTML = '<p class="hata">HTML/hata sayfası (HTTP ' + res.status + ')</p><pre>' + metin.substring(0, 3000).replace(/</g,'&lt;') + '</pre>';
+            return;
+        }
+
+        if (data.success) {
+            sonucDiv.innerHTML = '<p class="ok">Başarılı!</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        } else {
+            sonucDiv.innerHTML = '<p class="hata">Hata</p><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+    } catch (err) {
+        sonucDiv.innerHTML = '<p class="hata">Bağlantı hatası: ' + err.message + '</p>';
+    }
+}
+
+function durumSorgula() {
+    ortakIstek('/api/v1/desktop/status', { method: 'GET' }, 'durum-sonuc');
+}
+
+function masaSenkronTest() {
+    ortakIstek('/api/v1/desktop/sync/tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ masalar: [{ isim: "Test Masası", durum: 1, guncel_tutar: 150.00, siparisler: [] }] })
+    }, 'masa-sonuc');
+}
+
+function menuCekTest() {
+    ortakIstek('/api/v1/desktop/sync/menu', { method: 'GET' }, 'menu-sonuc');
+}
+
+function siparisCekTest() {
+    ortakIstek('/api/v1/desktop/sync/web-orders?mark_as_pulled=0&limit=5', { method: 'GET' }, 'siparis-sonuc');
+}
+
+function kasaSenkronTest() {
+    const bugun = new Date().toISOString().split('T')[0];
+    ortakIstek('/api/v1/desktop/sync/kasa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tarih: bugun, nakit_toplam: 500, kredi_karti_toplam: 750, islemler: [] })
+    }, 'kasa-sonuc');
+}
+
+function garsonCekTest() {
+    ortakIstek('/api/v1/desktop/sync/waiter-calls?mark_as_pulled=0', { method: 'GET' }, 'garson-sonuc');
+}
+
+function urunCekTest() {
+    const id = document.getElementById('urun-id').value;
+    ortakIstek('/api/v1/desktop/sync/product/' + id, { method: 'GET' }, 'urun-sonuc');
+}
+</script>
+
+</body>
+</html>

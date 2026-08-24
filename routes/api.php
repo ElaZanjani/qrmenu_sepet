@@ -5,13 +5,8 @@ use App\Http\API\DesktopSyncController;
 use App\Http\Controllers\Auth\DesktopAuthController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\RestaurantOpsController;
+use App\Http\Controllers\SiparisController;
 use Illuminate\Support\Facades\Route;
-
-// --- Mevcut Standart Menü ve İşlem Rotaları ---
-Route::get('/menu', [APIController::class, 'GetAllProducts']);
-Route::post('/urun-ekle', [APIController::class, 'Insert']);
-Route::post('/urun-guncelle/{id}', [APIController::class, 'Update']);
-Route::post('/urun-sil/{id}', [APIController::class, 'Delete']);
 
 // --- Müşteri (QR Menü) tarafı - herkese açık ---
 Route::post('/garson-cagir', [RestaurantOpsController::class, 'garsonCagir']);
@@ -41,7 +36,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('desktop')->group(function () {
         Route::post('/login', [DesktopAuthController::class, 'login']);
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware('desktop.auth')->group(function () {
             Route::post('/logout', [DesktopAuthController::class, 'logout']);
             Route::post('/sync/tables', [DesktopSyncController::class, 'syncTables']);
             Route::post('/sync/menu', [DesktopSyncController::class, 'syncMenuPush']);
@@ -54,6 +49,3 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
-use App\Http\Controllers\SiparisController;
-
-Route::post('/siparis-ver', [SiparisController::class, 'kaydet']);

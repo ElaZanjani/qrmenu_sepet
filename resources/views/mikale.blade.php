@@ -27,7 +27,6 @@ Route::get('/api/admin-olustur-bir-kere', function() {
             'password' => Hash::make('Center2026'),
             'yetki' => 'tumu',
             'kullanicitipi' => '1',
-            'subeyetki' => '1',
             'created_at' => now(),
             'updated_at' => now(),
         ]
