@@ -466,26 +466,21 @@ INSERT IGNORE INTO `t_urunkart` (`id`, `Urun_id`, `UrunTip`, `UrunKod`, `UrunAd`
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `id_kullanici` int NOT NULL,
   `name` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `yetki` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `kullanicitipi` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `subeyetki` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'admin',
   `remember_token` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `users_id_kullanici_unique` (`id_kullanici`),
   UNIQUE KEY `users_email_unique` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO `users` (`id`, `id_kullanici`, `name`, `email`, `yetki`, `kullanicitipi`, `subeyetki`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`) VALUES
-	(1, 1, 'Oğuzhan Karacabay', 'oguzhankrcb@gmail.com', 'tahsilat|odeme|satisrapor', '0', '1|2|3', '2021-07-26 11:45:18', '$2y$10$Se2TwX5YQkO2Torfy1miG.Aamu1fTTojULoIi6uFiJuwUe95RX2BK', 'e4gBfHbXFd', NULL, NULL),
-	(2, 2, 'Ender Eravcı', 'eeravci@gmail.com', 'tahsilat|odeme|satisrapor', '1', '1|2|3', '2021-07-26 11:45:18', '$2y$10$01QABqZMPx.RJSqub3bB1OGXKX99aj6IBSVkg8pfvdfUUh8RbQHDa', 'AOgKNyAMJq', NULL, NULL),
-	(3, 3, 'Fuat', 'Bilkay-47@hotmail.com', '123', '123', '1', NULL, '$2y$10$01QABqZMPx.RJSqub3bB1OGXKX99aj6IBSVkg8pfvdfUUh8RbQHDa', NULL, NULL, NULL);
+INSERT IGNORE INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `role`, `remember_token`, `created_at`, `updated_at`) VALUES
+	(1, 'Öztaylan Sütevi Admin', 'eeravci@gmail.com', NULL, '$2y$12$x8cfwt7jxyNUAXxnPEJ5HuSQFRY/42T...', 'admin', NULL, '2026-07-30 08:38:50', '2026-08-14 14:06:12'),
+	(2, 'Mikale Developer', 'oguzhankrcb@gmail.com', NULL, '$2y$12$x8cfwt7jxyNUAXxnPEJ5HuSQFRY/42T...', 'admin', NULL, '2026-07-30 08:38:50', '2026-08-14 14:04:50');
 
 CREATE TABLE IF NOT EXISTS `waiter_calls` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
