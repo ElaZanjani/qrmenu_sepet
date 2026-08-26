@@ -55,19 +55,17 @@ Route::get('/api/mikale-admin-olustur-bir-kere', function() {
 
 Route::post('/api/admin-login', function (Request $request) {
     $email = $request->input('email');
-    
-    // Patronun darlamaması ve şifre hash uyuşmazlığı yüzünden takılmaması için
-    // veritabanında bu e-posta varsa direkt içeri alıyoruz!
+    $password = $request->input('password');
+
     $user = DB::table('users')->where('email', $email)->first();
-    
-    if ($user) {
+    if ($user && Hash::check($password, $user->password)) {
         return response()->json([
             'durum' => 'basarili',
             'token' => base64_encode($user->email . ':' . now()->timestamp),
         ]);
     }
 
-    return response()->json(['durum' => 'hata', 'mesaj' => 'E-posta veritabanında bulunamadı!'], 401);
+    return response()->json(['durum' => 'hata', 'mesaj' => 'E-posta veya şifre hatalı!'], 401);
 });
 
 // Admin Şifre Güncelleme Route'u
