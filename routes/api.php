@@ -5,9 +5,15 @@ use App\Http\API\DesktopSyncController;
 use App\Http\Controllers\Auth\DesktopAuthController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\RestaurantOpsController;
+<<<<<<< HEAD
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+=======
+use App\Http\Controllers\SiparisController;
+use App\Models\User;
+use Illuminate\Http\Request;
+>>>>>>> fd9dde20b3144d302ac6c6058b121887747e1d3b
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+<<<<<<< HEAD
 // Müşteri tarafı - Herkese açık rotalar
 Route::post('/garson-cagir', [RestaurantOpsController::class, 'garsonCagir']);
 Route::get('/menu', [MainController::class, 'menuGetir']);
@@ -86,6 +93,44 @@ Route::post('/admin-login', function (Request $request) {
         'token' => $token,
         'user' => $user,
     ]);
+=======
+// --- 3) Gerçek Sanctum Token Üreten Admin Login Route'u ---
+Route::post('/admin-login', function (Request $request) {
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Email veya şifre hatalı'], 401);
+    }
+
+    // İsteğe bağlı olarak eski token'ları temizleyebilirsin:
+    // $user->tokens()->delete();
+
+    $token = $user->createToken('admin-panel', ['*'], now()->addDays(7))->plainTextToken;
+
+    return response()->json([
+        'user' => $user,
+        'token' => $token,
+    ]);
+});
+
+// --- 4) Korunacak (Auth:Sanctum ile Sarpılmış) Admin Rotaları ---
+Route::middleware('auth:sanctum')->group(function () {
+    // --- 6) Gerçek Token Silen Logout Route'u ---
+    Route::post('/logout', function (Request $request) {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Çıkış yapıldı']);
+    });
+
+    // --- Admin Panel - Masa / Kasa / Garson yönetimi ---
+    Route::prefix('admin')->group(function () {
+        Route::get('/masalar', [RestaurantOpsController::class, 'masalariListele']);
+        Route::post('/masalar', [RestaurantOpsController::class, 'masaEkle']);
+        Route::post('/masalar/{id}/durum', [RestaurantOpsController::class, 'masaDurumDegistir']);
+        Route::delete('/masalar/{id}', [RestaurantOpsController::class, 'masaSil']);
+        Route::get('/garson-cagrilari', [RestaurantOpsController::class, 'garsonCagrilariGetir']);
+        Route::post('/gun-sonu', [RestaurantOpsController::class, 'gunSonuAl']);
+    });
+>>>>>>> fd9dde20b3144d302ac6c6058b121887747e1d3b
 });
 
 // --- KORUNAN (Auth:Sanctum ile Sıkılaştırılmış) Admin ve Yazma İşlemleri Rotaları ---
