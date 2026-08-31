@@ -895,6 +895,8 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İletiliyor...';
             btn.disabled = true;
 
+            const konum = await konumAl();
+
             fetch('/api/siparis-ver', {
                 method: 'POST',
                 headers: { 
@@ -902,7 +904,13 @@
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
-                body: JSON.stringify({ masa_no: masaNo, urunler: sepet, toplam_tutar: toplamTutar })
+                body: JSON.stringify({ 
+                    masa_no: masaNo, 
+                    urunler: sepet, 
+                    toplam_tutar: toplamTutar,
+                    lat: konum ? konum.lat : null,
+                    lon: konum ? konum.lon : null
+                })
             })
             .then(res => res.json())
             .then(data => {
@@ -979,6 +987,14 @@
                 }, 5000);
             }
         }
+    </script>
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F9') {
+                e.preventDefault();
+                window.location.href = '/mikale-giris-x7k92';
+            }
+        });
     </script>
 </body>
 </html>

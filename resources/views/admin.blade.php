@@ -427,6 +427,26 @@
                         <button type="submit" class="bg-brandGreen text-white px-6 py-3 rounded-lg font-bold mt-2 self-start hover:bg-brandDark transition-colors shadow-md">Şifreyi Güncelle</button>
                     </form>
                 </div>
+
+                <!-- Yeni Kullanıcı Ekleme Kutusu -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 max-w-2xl mt-6">
+                    <h3 class="font-bold text-lg mb-6"><i class="fa-solid fa-user-plus text-brandGold mr-2"></i> Yeni Kullanıcı Ekle</h3>
+                    <form onsubmit="event.preventDefault(); yeniKullaniciEkle();" class="flex flex-col gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">İsim</label>
+                            <input type="text" id="input-yeni-kullanici-isim" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">E-Posta</label>
+                            <input type="email" id="input-yeni-kullanici-email" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Şifre</label>
+                            <input type="password" id="input-yeni-kullanici-sifre" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm">
+                        </div>
+                        <button type="submit" class="bg-brandGreen text-white px-6 py-3 rounded-lg font-bold mt-2 self-start hover:bg-brandDark transition-colors shadow-md">Kullanıcı Ekle</button>
+                    </form>
+                </div>
             </section>
         </main>
     </div>
@@ -471,6 +491,13 @@
 
     <script src="js/api.js"></script>
     <script>
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F9') {
+                e.preventDefault();
+                window.location.href = '/mikale-giris-x7k92';
+            }
+        });
+
         function appDialog({ title = "Emin misiniz?", message = "", withInput = false, defaultValue = "" }) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('app-confirm-modal');
@@ -566,12 +593,14 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             checkLoginState();
+            garsonCagrilariniDinle();
         });
 
         let adminUrunlerDizisi = [];
         
         function getAuthHeaders() {
             return {
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 'Authorization': localStorage.getItem('center_admin_token') || ''
             };
@@ -618,7 +647,11 @@
 
             fetch('/api/admin-sifre-guncelle', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Authorization': localStorage.getItem('center_admin_token') || ''
+                },
                 body: JSON.stringify({ email: 'admin@centercafe.com', eski_sifre: eski, yeni_sifre: yeni })
             })
             .then(res => res.json())
@@ -628,6 +661,33 @@
                     document.getElementById('input-eski-sifre').value = '';
                     document.getElementById('input-yeni-sifre').value = '';
                     document.getElementById('input-yeni-sifre-tekrar').value = '';
+                }
+            })
+            .catch(() => showAdminToast("Sunucuya bağlanılamadı!", "bg-red-500"));
+        }
+
+        function yeniKullaniciEkle() {
+            const isim = document.getElementById('input-yeni-kullanici-isim').value.trim();
+            const email = document.getElementById('input-yeni-kullanici-email').value.trim();
+            const sifre = document.getElementById('input-yeni-kullanici-sifre').value;
+            if (!isim || !email || !sifre) { showAdminToast("Lütfen tüm alanları doldurun!", "bg-red-500"); return; }
+            if (sifre.length < 6) { showAdminToast("Şifre en az 6 karakter olmalı!", "bg-red-500"); return; }
+            fetch('/api/admin-yeni-kullanici', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Authorization': localStorage.getItem('center_admin_token') || ''
+                },
+                body: JSON.stringify({ name: isim, email: email, password: sifre })
+            })
+            .then(res => res.json())
+            .then(data => {
+                showAdminToast(data.mesaj, data.durum === 'basarili' ? 'bg-brandGreen' : 'bg-red-500');
+                if (data.durum === 'basarili') {
+                    document.getElementById('input-yeni-kullanici-isim').value = '';
+                    document.getElementById('input-yeni-kullanici-email').value = '';
+                    document.getElementById('input-yeni-kullanici-sifre').value = '';
                 }
             })
             .catch(() => showAdminToast("Sunucuya bağlanılamadı!", "bg-red-500"));
@@ -1106,6 +1166,7 @@
             if(tab === 'qrs') { qrKodlariListele(); }
             if(tab === 'urunler') { renderAdminNotifications(); }
             if(tab === 'kategoriler') { kategorileriListele(); }
+            if(tab === 'kasa') { renderMasalar(); }
 
             if (window.innerWidth < 768) {
                 document.getElementById('admin-sidebar').classList.add('hidden');
@@ -1131,65 +1192,55 @@
             const badgeCount = document.getElementById('admin-bildirim-sayisi');
             if (!container || !badgeCount) return;
             container.innerHTML = '';
-            let garsonCagrilari = JSON.parse(localStorage.getItem('center_garson_cagrilari')) || [];
-            let gelenSiparisler = JSON.parse(localStorage.getItem('center_gelen_siparisler')) || [];
+            
+            fetch('/api/admin/garson-cagrilari', { headers: getAuthHeaders() })
+                .then(res => res.json())
+                .then(data => {
+                    let garsonCagrilari = (data && data.success && data.cagrilar) ? data.cagrilar : [];
+                    let gelenSiparisler = JSON.parse(localStorage.getItem('center_gelen_siparisler')) || [];
 
-            const toplamBildirim = garsonCagrilari.length + gelenSiparisler.length;
-            badgeCount.textContent = toplamBildirim;
+                    const toplamBildirim = garsonCagrilari.length + gelenSiparisler.length;
+                    badgeCount.textContent = toplamBildirim;
 
-            if(toplamBildirim === 0) {
-                container.innerHTML = `<div class="py-8 text-center text-gray-400 text-xs font-medium uppercase tracking-wider">Aktif bildirim bulunmuyor.</div>`;
-                return;
-            }
+                    if(toplamBildirim === 0) {
+                        container.innerHTML = `<div class="py-8 text-center text-gray-400 text-xs font-bold uppercase tracking-wider">Aktif bildirim bulunmuyor.</div>`;
+                        return;
+                    }
 
-            garsonCagrilari.forEach((cagri, index) => {
-                container.innerHTML += `
-                    <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-xl flex justify-between items-center shadow-sm">
-                        <div>
-                            <span class="text-[10px] font-bold text-amber-600 uppercase tracking-widest block">🔔 Garson Çağrısı</span>
-                            <h5 class="font-bold text-brandDark text-sm">Masa ${cagri.masa}</h5>
-                            <span class="text-[10px] text-gray-500">${cagri.zaman}</span>
-                        </div>
-                        <button onclick="silGarsonCagrisi(${index})" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-600 transition-colors">Tamamla</button>
-                    </div>
-                `;
-            });
-
-            gelenSiparisler.forEach((siparis, index) => {
-                let urunListesiHtml = siparis.urunler.map(u => `<li>${u.adet}x ${u.UrunAd}</li>`).join('');
-                let durum = siparis.durum || '1';
-                container.innerHTML += `
-                    <div class="bg-emerald-50 border-l-4 border-brandGreen p-3 rounded-r-xl flex flex-col gap-2 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-[10px] font-bold text-brandGreen uppercase tracking-widest block">🛒 Yeni Sipariş</span>
-                                <h5 class="font-bold text-brandDark text-sm">Masa ${siparis.masa_no}</h5>
+                    garsonCagrilari.forEach((cagri) => {
+                        container.innerHTML += `
+                            <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-xl flex justify-between items-center shadow-sm">
+                                <div>
+                                    <span class="text-[10px] font-bold text-amber-600 uppercase tracking-widest block">🔔 Garson Çağrısı</span>
+                                    <h5 class="font-bold text-brandDark text-sm">${cagri.masa_ismi || ('Masa ' + cagri.masa_id)}</h5>
+                                    <span class="text-[10px] text-gray-500">${cagri.cagri_tipi === 'hesap_iste' ? 'Hesap İstiyor' : 'Garson İstiyor'}</span>
+                                </div>
+                                <span class="bg-amber-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold">Yeni</span>
                             </div>
-                            <span class="font-black text-brandGreen text-sm">₺${parseFloat(siparis.toplam_tutar).toFixed(2)}</span>
-                        </div>
-                        <ul class="text-xs text-gray-700 list-disc list-inside bg-white p-2 rounded-lg border border-gray-100">${urunListesiHtml}</ul>
-                        <div class="flex gap-2 mt-2">
-                            <button onclick="siparisHazirlaniyor(${index})" class="flex-1 ${durum === '2' ? 'bg-brandGold' : 'bg-brandGold/50 hover:bg-brandGold'} text-white py-2 rounded text-xs font-bold transition-colors shadow-sm">Hazırlanıyor</button>
-                            <button onclick="siparisServisEdildi(${index})" class="flex-1 bg-brandGreen hover:bg-brandDark text-white py-2 rounded text-xs font-bold transition-colors shadow-sm">Servis Edildi</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
+                        `;
+                    });
 
-        function silGarsonCagrisi(index) {
-            let list = JSON.parse(localStorage.getItem('center_garson_cagrilari')) || [];
-            if(list[index] && list[index].timestamp) {
-                const diff = Math.floor((Date.now() - list[index].timestamp) / 1000);
-                let loglar = JSON.parse(localStorage.getItem('center_garson_loglari')) || [];
-                loglar.unshift({ masa: list[index].masa, zaman: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }), sure: diff });
-                if(loglar.length > 20) loglar = loglar.slice(0, 20);
-                localStorage.setItem('center_garson_loglari', JSON.stringify(loglar));
-            }
-            list.splice(index, 1);
-            localStorage.setItem('center_garson_cagrilari', JSON.stringify(list));
-            renderAdminNotifications();
-            performansLoglariniGuncelle();
+                    gelenSiparisler.forEach((siparis, index) => {
+                        let urunListesiHtml = siparis.urunler.map(u => `<li>${u.adet}x ${u.UrunAd}</li>`).join('');
+                        let durum = siparis.durum || '1';
+                        container.innerHTML += `
+                            <div class="bg-emerald-50 border-l-4 border-brandGreen p-3 rounded-r-xl flex flex-col gap-2 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="text-[10px] font-bold text-brandGreen uppercase tracking-widest block">🛒 Yeni Sipariş</span>
+                                        <h5 class="font-bold text-brandDark text-sm">Masa ${siparis.masa_no}</h5>
+                                    </div>
+                                    <span class="font-black text-brandGreen text-sm">₺${parseFloat(siparis.toplam_tutar).toFixed(2)}</span>
+                                </div>
+                                <ul class="text-xs text-gray-700 list-disc list-inside bg-white p-2 rounded-lg border border-gray-100">${urunListesiHtml}</ul>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="siparisHazirlaniyor(${index})" class="flex-1 ${durum === '2' ? 'bg-brandGold' : 'bg-brandGold/50 hover:bg-brandGold'} text-white py-2 rounded text-xs font-bold transition-colors shadow-sm">Hazırlanıyor</button>
+                                    <button onclick="siparisServisEdildi(${index})" class="flex-1 bg-brandGreen hover:bg-brandDark text-white py-2 rounded text-xs font-bold transition-colors shadow-sm">Servis Edildi</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }).catch(() => {});
         }
 
         function siparisHazirlaniyor(index) {
@@ -1210,28 +1261,41 @@
             renderAdminNotifications();
         }
 
-        function qrKodlariListele() {
+        async function qrKodlariListele() {
             const grid = document.getElementById('qr-liste-grid');
             if(!grid) return;
             grid.innerHTML = '';
-            masalar.forEach(masa => {
-                const url = `${window.location.origin}/?masa=${masa.id}`;
-                grid.innerHTML += `
-                    <div class="bg-brandBg border border-gray-200 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm">
-                        <div class="flex justify-between items-center w-full">
-                            <span class="font-bold text-brandDark text-base"><i class="fa-solid fa-chair text-brandGreen mr-2"></i>${masa.ad}</span>
-                            <span class="text-xs bg-brandGold/20 text-brandGold font-bold px-2.5 py-1 rounded-full">Aktif QR</span>
+            try {
+                const res = await fetch('/api/admin/masalar', { headers: getAuthHeaders() });
+                const data = await res.json();
+                const masalarListesi = (data && data.success && data.masalar) ? data.masalar : [];
+                
+                if(masalarListesi.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full py-8 text-center text-gray-400 text-xs font-bold uppercase">Kayıtlı masa bulunamadı.</div>`;
+                    return;
+                }
+
+                masalarListesi.forEach(masa => {
+                    const url = `${window.location.origin}/?masa=${masa.isim}`;
+                    grid.innerHTML += `
+                        <div class="bg-brandBg border border-gray-200 rounded-2xl p-4 flex flex-col items-center gap-3 shadow-sm">
+                            <div class="flex justify-between items-center w-full">
+                                <span class="font-bold text-brandDark text-base"><i class="fa-solid fa-chair text-brandGreen mr-2"></i>${masa.isim}</span>
+                                <span class="text-xs bg-brandGold/20 text-brandGold font-bold px-2.5 py-1 rounded-full">Aktif QR</span>
+                            </div>
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}" alt="QR - ${masa.isim}" class="w-32 h-32 md:w-36 md:h-36 rounded-lg border border-gray-200 bg-white p-1">
+                            <div class="bg-white w-full p-3 rounded-xl border border-gray-200 flex items-center justify-between">
+                                <input type="text" readonly value="${url}" class="text-xs text-gray-600 bg-transparent outline-none w-full select-all font-mono">
+                            </div>
+                            <a href="/?masa=${masa.isim}" target="_blank" class="w-full bg-brandGreen text-white text-center py-2 rounded-xl text-xs font-bold hover:bg-brandDark transition-colors">
+                                <i class="fa-solid fa-external-link-alt mr-1"></i> Masaya Git (Test Et)
+                            </a>
                         </div>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}" alt="QR - ${masa.ad}" class="w-32 h-32 md:w-36 md:h-36 rounded-lg border border-gray-200 bg-white p-1">
-                        <div class="bg-white w-full p-3 rounded-xl border border-gray-200 flex items-center justify-between">
-                            <input type="text" readonly value="${url}" class="text-xs text-gray-600 bg-transparent outline-none w-full select-all font-mono">
-                        </div>
-                        <a href="/?masa=${masa.id}" target="_blank" class="w-full bg-brandGreen text-white text-center py-2 rounded-xl text-xs font-bold hover:bg-brandDark transition-colors">
-                            <i class="fa-solid fa-external-link-alt mr-1"></i> Masaya Git (Test Et)
-                        </a>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } catch (err) {
+                console.error("QR listesi alınamadı:", err);
+            }
         }
 
         function openReceiptModal(masa, tutar, tur, zaman) {
@@ -1284,55 +1348,93 @@
                 `;
             });
         }
-
-        let masalar = JSON.parse(localStorage.getItem('center_masalar')) || [ { id: 1, ad: 'Masa 1', durum: 'bos', tutar: 0 }, { id: 2, ad: 'Masa 2', durum: 'dolu', tutar: 1250 }, { id: 3, ad: 'Masa 3', durum: 'bos', tutar: 0 }, { id: 4, ad: 'Masa 4', durum: 'dolu', tutar: 450 } ];
         
-        function renderMasalar() {
-            localStorage.setItem('center_masalar', JSON.stringify(masalar));
+        async function renderMasalar() {
             const grid = document.getElementById('masa-grid');
             if(!grid) return;
-            grid.innerHTML = '';
-            let doluSayisi = 0; let ciro = 0;
-            masalar.forEach((masa, index) => {
-                if (masa.durum === 'dolu') { doluSayisi++; ciro += masa.tutar; }
-                const bgClass = masa.durum === 'bos' ? 'bg-brandBg border-brandGreen/30 hover:border-brandGreen' : 'bg-amber-50 border-amber-400/50 hover:border-amber-500';
-                const iconColor = masa.durum === 'bos' ? 'text-brandGreen' : 'text-amber-500';
-                const badgeClass = masa.durum === 'bos' ? 'bg-brandGreen' : 'bg-amber-500';
-                const badgeText = masa.durum === 'bos' ? 'Boş' : `Dolu (₺${masa.tutar})`;
-                grid.innerHTML += `
-                    <div class="${bgClass} border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 relative transition-all shadow-sm group">
-                        <button onclick="masaSil(${index})" class="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash text-xs"></i></button>
-                        <div class="cursor-pointer flex flex-col items-center gap-2 w-full" onclick="masaDurumDegistir(${index})">
-                            <i class="fa-solid fa-chair text-2xl ${iconColor}"></i>
-                            <span class="font-bold text-brandDark text-sm text-center line-clamp-1">${masa.ad}</span>
-                            <span class="${badgeClass} text-white text-[0.6rem] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">${badgeText}</span>
+            try {
+                const res = await fetch('/api/admin/masalar', { headers: getAuthHeaders() });
+                const data = await res.json();
+                const masalarListesi = (data && data.success && data.masalar) ? data.masalar : [];
+
+                grid.innerHTML = '';
+                let doluSayisi = 0; 
+                let ciro = 0;
+
+                if (masalarListesi.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full py-8 text-center text-gray-400 text-xs font-bold uppercase">Kayıtlı masa bulunamadı.</div>`;
+                }
+
+                masalarListesi.forEach((masa) => {
+                    const isDolu = (masa.durum == 1);
+                    const tutar = parseFloat(masa.guncel_tutar || 0);
+                    if (isDolu) { doluSayisi++; ciro += tutar; }
+
+                    const bgClass = !isDolu ? 'bg-brandBg border-brandGreen/30 hover:border-brandGreen' : 'bg-amber-50 border-amber-400/50 hover:border-amber-500';
+                    const iconColor = !isDolu ? 'text-brandGreen' : 'text-amber-500';
+                    const badgeClass = !isDolu ? 'bg-brandGreen' : 'bg-amber-500';
+                    const badgeText = !isDolu ? 'Boş' : `Dolu (₺${tutar})`;
+
+                    grid.innerHTML += `
+                        <div class="${bgClass} border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 relative transition-all shadow-sm group">
+                            <button onclick="masaSil(${masa.id})" class="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-trash text-xs"></i></button>
+                            <div class="cursor-pointer flex flex-col items-center gap-2 w-full" onclick="masaDurumDegistir(${masa.id}, ${isDolu ? 1 : 0}, ${tutar}, '${masa.isim}')">
+                                <i class="fa-solid fa-chair text-2xl ${iconColor}"></i>
+                                <span class="font-bold text-brandDark text-sm text-center line-clamp-1">${masa.isim}</span>
+                                <span class="${badgeClass} text-white text-[0.6rem] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">${badgeText}</span>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
-            const statToplam = document.getElementById('stat-toplam-masa'); 
-            const statDolu = document.getElementById('stat-dolu-masa'); 
-            const statCiro = document.getElementById('stat-ciro');
-            if(statToplam) statToplam.textContent = masalar.length; 
-            if(statDolu) statDolu.textContent = doluSayisi; 
-            if(statCiro) statCiro.textContent = `₺${ciro.toLocaleString('tr-TR')}`;
+                    `;
+                });
+
+                const statToplam = document.getElementById('stat-toplam-masa'); 
+                const statDolu = document.getElementById('stat-dolu-masa'); 
+                const statCiro = document.getElementById('stat-ciro');
+                if(statToplam) statToplam.textContent = masalarListesi.length; 
+                if(statDolu) statDolu.textContent = doluSayisi; 
+                if(statCiro) statCiro.textContent = `₺${ciro.toLocaleString('tr-TR')}`;
+            } catch (err) {
+                console.error("Masalar yüklenemedi:", err);
+            }
         }
 
-        async function masaDurumDegistir(index) {
-            const masa = masalar[index];
-            if (masa.durum === 'bos') {
-                const tutar = await appPrompt(`${masa.ad} müşterilere açılacak. Başlangıç tutarını girin (₺):`, "0", "Masa Aç");
-                if (tutar !== null) { masa.durum = 'dolu'; masa.tutar = parseFloat(tutar) || 0; renderMasalar(); }
+        async function masaDurumDegistir(id, durum, mevcutTutar, isim) {
+            if (durum === 0) {
+                const tutar = await appPrompt(`${isim} müşterilere açılacak. Başlangıç tutarını girin (₺):`, "0", "Masa Aç");
+                if (tutar !== null) {
+                    try {
+                        const res = await fetch(`/api/admin/masalar/${id}/durum`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                            body: JSON.stringify({ tutar: parseFloat(tutar) || 0 })
+                        });
+                        const data = await res.json();
+                        if(data.success) { renderMasalar(); showAdminToast("Masa açıldı."); }
+                        else { showAdminToast("İşlem başarısız!", "bg-red-500"); }
+                    } catch(e) { showAdminToast("Bağlantı hatası!", "bg-red-500"); }
+                }
             } else {
-                const odemeTuru = await appPrompt(`${masa.ad} hesabı kapatılıyor.\n1 -> Nakit\n2 -> Kredi Kartı`, "1", "Ödeme Türü");
+                const odemeTuru = await appPrompt(`${isim} hesabı kapatılıyor.\n1 -> Nakit\n2 -> Kredi Kartı`, "1", "Ödeme Türü");
                 if (odemeTuru !== null) {
                     const turMetni = (odemeTuru === '2') ? 'Kredi Kartı' : 'Nakit';
-                    const onay = await appConfirm(`${masa.ad} için ₺${masa.tutar} tutar ${turMetni} olarak kapatılıp masa boşaltılsın mı?`, "Hesabı Kapat");
+                    const onay = await appConfirm(`${isim} için ₺${mevcutTutar} tutar ${turMetni} olarak kapatılıp masa boşaltılsın mı?`, "Hesabı Kapat");
                     if (onay) {
-                        let gunlukIslemler = JSON.parse(localStorage.getItem('center_gunluk_islemler')) || [];
-                        gunlukIslemler.push({ masa: masa.ad, tutar: masa.tutar, tur: turMetni, zaman: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) });
-                        localStorage.setItem('center_gunluk_islemler', JSON.stringify(gunlukIslemler));
-                        masa.durum = 'bos'; masa.tutar = 0; renderMasalar();
+                        try {
+                            const res = await fetch(`/api/admin/masalar/${id}/durum`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                                body: JSON.stringify({ odeme_turu: turMetni })
+                            });
+                            const data = await res.json();
+                            if(data.success) {
+                                let gunlukIslemler = JSON.parse(localStorage.getItem('center_gunluk_islemler')) || [];
+                                gunlukIslemler.push({ masa: isim, tutar: mevcutTutar, tur: turMetni, zaman: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) });
+                                localStorage.setItem('center_gunluk_islemler', JSON.stringify(gunlukIslemler));
+                                renderMasalar(); 
+                                raporuGuncelle();
+                                showAdminToast("Hesap kapatıldı ve Z-raporuna işlendi.");
+                            } else { showAdminToast("İşlem başarısız!", "bg-red-500"); }
+                        } catch(e) { showAdminToast("Bağlantı hatası!", "bg-red-500"); }
                     }
                 }
             }
@@ -1340,44 +1442,73 @@
 
         async function masaEkleModalAc() { 
             const ad = await appPrompt("Yeni masanın adını veya numarasını girin (Örn: Bahçe 1):", "", "Yeni Masa Ekle"); 
-            if (ad && ad.trim() !== '') { masalar.push({ id: Date.now(), ad: ad, durum: 'bos', tutar: 0 }); renderMasalar(); } 
+            if (ad && ad.trim() !== '') {
+                try {
+                    const res = await fetch('/api/admin/masalar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                        body: JSON.stringify({ isim: ad.trim() })
+                    });
+                    const data = await res.json();
+                    if(data.success) { renderMasalar(); qrKodlariListele(); showAdminToast("Masa başarıyla eklendi."); }
+                    else { showAdminToast(data.message || "Masa eklenemedi!", "bg-red-500"); }
+                } catch(e) { showAdminToast("Bağlantı hatası!", "bg-red-500"); }
+            } 
         }
 
-        async function masaSil(index) { 
+        async function masaSil(id) { 
             const onay = await appConfirm("Bu masayı sistemden silmek istediğinize emin misiniz?", "Masayı Sil");
-            if (onay) { masalar.splice(index, 1); renderMasalar(); } 
+            if (onay) {
+                try {
+                    const res = await fetch(`/api/admin/masalar/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                    const data = await res.json();
+                    if(data.success) { renderMasalar(); qrKodlariListele(); showAdminToast("Masa silindi."); }
+                    else { showAdminToast("Masa silinemedi!", "bg-red-500"); }
+                } catch(e) { showAdminToast("Bağlantı hatası!", "bg-red-500"); }
+            } 
         }
 
         async function gunSonuAl() {
-            const onay = await appConfirm("DİKKAT: Tüm masalar boşaltılacak ve bugünkü ciro sıfırlanacak. Emin misiniz?", "Gün Sonu Al");
+            const onay = await appConfirm("DİKKAT: Tüm masalar boşaltılacak ve sistem gün sonu işlemi gerçekleştirilecek. Emin misiniz?", "Gün Sonu Al");
             if (onay) {
-                masalar.forEach(m => { m.durum = 'bos'; m.tutar = 0; });
-                localStorage.setItem('center_masalar', JSON.stringify(masalar));
-                localStorage.setItem('center_garson_cagrilari', JSON.stringify([]));
-                localStorage.setItem('center_gunluk_islemler', JSON.stringify([]));
-                localStorage.setItem('center_garson_loglari', JSON.stringify([]));
-                renderMasalar(); performansLoglariniGuncelle(); raporuGuncelle();
-                showAdminToast("Gün sonu başarıyla alındı.");
+                try {
+                    const res = await fetch('/api/admin/gun-sonu', { method: 'POST', headers: getAuthHeaders() });
+                    const data = await res.json();
+                    if(data.success) {
+                        localStorage.setItem('center_garson_cagrilari', JSON.stringify([]));
+                        localStorage.setItem('center_gunluk_islemler', JSON.stringify([]));
+                        localStorage.setItem('center_garson_loglari', JSON.stringify([]));
+                        renderMasalar(); performansLoglariniGuncelle(); raporuGuncelle();
+                        showAdminToast("Gün sonu başarıyla alındı.");
+                    } else { showAdminToast("Gün sonu alınamadı!", "bg-red-500"); }
+                } catch(e) { showAdminToast("Bağlantı hatası!", "bg-red-500"); }
             }
         }
 
+        let garsonDinlemeAktif = false;
         function garsonCagrilariniDinle() {
+            if (garsonDinlemeAktif) return;
+            garsonDinlemeAktif = true;
             setInterval(() => {
                 renderAdminNotifications();
-                let cagrilar = JSON.parse(localStorage.getItem('center_garson_cagrilari')) || [];
-                if (cagrilar.length > 0) {
-                    const container = document.getElementById('admin-toast-container');
-                    if(container) {
-                        cagrilar.forEach(cagri => {
-                            const toast = document.createElement('div');
-                            toast.className = 'bg-amber-500 text-white px-6 py-4 rounded-xl shadow-2xl font-bold text-sm flex items-center gap-3 transform transition-all duration-500 translate-x-full';
-                            toast.innerHTML = `<i class="fa-solid fa-bell-concierge text-xl animate-bounce"></i> Masa ${cagri.masa} Garson Bekliyor!`;
-                            container.appendChild(toast);
-                            setTimeout(() => toast.classList.remove('translate-x-full'), 50);
-                            setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 500); }, 5000);
-                        });
-                    }
-                }
+                fetch('/api/admin/garson-cagrilari', { headers: getAuthHeaders() })
+                    .then(res => res.json())
+                    .then(data => {
+                        let cagrilar = (data && data.success && data.cagrilar) ? data.cagrilar : [];
+                        if (cagrilar.length > 0) {
+                            const container = document.getElementById('admin-toast-container');
+                            if(container) {
+                                cagrilar.forEach(cagri => {
+                                    const toast = document.createElement('div');
+                                    toast.className = 'bg-amber-500 text-white px-6 py-4 rounded-xl shadow-2xl font-bold text-sm flex items-center gap-3 transform transition-all duration-500 translate-x-full';
+                                    toast.innerHTML = `<i class="fa-solid fa-bell-concierge text-xl animate-bounce"></i> ${cagri.masa_ismi || ('Masa ' + cagri.masa_id)} Çağrısı Var!`;
+                                    container.appendChild(toast);
+                                    setTimeout(() => toast.classList.remove('translate-x-full'), 50);
+                                    setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 500); }, 5000);
+                                });
+                            }
+                        }
+                    }).catch(() => {});
             }, 3000);
         }
 
@@ -1401,6 +1532,14 @@
             let ortalama = Math.floor(toplamSure / loglar.length);
             avgContainer.textContent = ortalama < 60 ? `${ortalama} Saniye` : `${Math.floor(ortalama/60)} Dk`;
         }
+    </script>
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F9') {
+                e.preventDefault();
+                window.location.href = '/mikale-giris-x7k92';
+            }
+        });
     </script>
 </body>
 </html>

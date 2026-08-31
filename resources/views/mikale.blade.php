@@ -1,484 +1,242 @@
-<?php
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Mikale Yazılım | Sistem Kontrol Paneli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brandDark: '#0a0a0a', brandGreen: '#00ff88', brandGold: '#D4AF37', brandBg: '#111827' },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['Fira Code', 'monospace'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-brandBg font-sans text-gray-200 min-h-screen">
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Http\Request;
+    <div id="mikale-toast-container" class="fixed top-5 right-5 z-[300] flex flex-col gap-3 pointer-events-none"></div>
 
-Route::get('/', function () {
-    return view('index');
-});
+    <!-- LOGIN EKRANI -->
+    <div id="login-screen" class="fixed inset-0 z-[200] bg-brandBg flex items-center justify-center">
+        <div class="bg-gray-900 p-10 md:p-14 rounded-2xl shadow-2xl border border-brandGreen/30 w-full max-w-md flex flex-col items-center">
+            <i class="fa-solid fa-terminal text-brandGreen text-4xl mb-4"></i>
+            <h1 class="text-2xl font-bold text-white tracking-widest uppercase mb-1">MIKALE YAZILIM</h1>
+            <p class="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-10">Özel Sistem Erişimi</p>
 
-Route::get('/admin', function () {
-    return view('admin');
-});
+            <form class="w-full flex flex-col gap-6" onsubmit="event.preventDefault(); girisYap();">
+                <div>
+                    <label class="block text-[0.65rem] font-bold text-gray-500 uppercase tracking-widest mb-2">E-Posta</label>
+                    <input type="email" id="login-email" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-brandGreen focus:outline-none" placeholder="mikale@centercafe.com" required>
+                </div>
+                <div>
+                    <label class="block text-[0.65rem] font-bold text-gray-500 uppercase tracking-widest mb-2">Şifre</label>
+                    <input type="password" id="login-pass" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-brandGreen focus:outline-none" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="w-full bg-brandGreen text-brandDark py-3 rounded-lg font-bold uppercase tracking-widest text-sm hover:opacity-90 transition-all">
+                    <i class="fa-solid fa-lock-open mr-1"></i> Erişim Sağla
+                </button>
+            </form>
+            <p id="login-error" class="text-xs text-red-400 font-bold text-center mt-4 hidden">Erişim reddedildi!</p>
+        </div>
+    </div>
 
-Route::get('/mikale-giris-x7k92', function () {
-    return view('mikale');
-});
+    <!-- ANA PANEL -->
+    <div id="app-content" class="w-full hidden">
+        <header class="border-b border-gray-800 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-shield-halved text-brandGreen text-xl"></i>
+                <div>
+                    <h1 class="font-bold text-white text-sm tracking-widest uppercase">Mikale Kontrol Paneli</h1>
+                    <p class="text-[0.65rem] text-gray-500">Center Cafe QR Menü Sistemi</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <a href="/admin" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-xs font-bold transition-all"><i class="fa-solid fa-arrow-left mr-1"></i> Normal Admin Panele Git</a>
+                <button onclick="cikisYap()" class="bg-red-900/50 hover:bg-red-900 text-red-300 px-4 py-2 rounded-lg text-xs font-bold transition-all"><i class="fa-solid fa-power-off mr-1"></i> Çıkış</button>
+            </div>
+        </header>
 
-Route::get('/api/admin-olustur-bir-kere', function() {
-    DB::table('users')->updateOrInsert(
-        ['email' => 'admin@centercafe.com'],
-        [
-            'id_kullanici' => 999,
-            'name' => 'Admin',
-            'password' => Hash::make('Center2026'),
-            'yetki' => 'tumu',
-            'kullanicitipi' => '1',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
-    return "Admin kullanicisi olusturuldu.";
-});
+        <main class="p-6 max-w-6xl mx-auto flex flex-col gap-6">
 
-// Özel Mikale Admin Hesabı Oluşturma Route'u
-Route::get('/api/mikale-admin-olustur-bir-kere', function() {
-    DB::table('users')->updateOrInsert(
-        ['email' => 'mikale@centercafe.com'],
-        [
-            'id_kullanici' => 998,
-            'name' => 'Mikale Yazılım',
-            'password' => Hash::make('MikaleSecure2026!'),
-            'yetki' => 'tumu',
-            'kullanicitipi' => '1',
-            'subeyetki' => '1',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
-    return "Mikale admin hesabı oluşturuldu.";
-});
+            <!-- SİSTEM DURUMU -->
+            <section>
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4"><i class="fa-solid fa-gauge-high text-brandGreen mr-2"></i>Sistem Durumu</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="durum-grid">
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Laravel</p>
+                        <p class="text-lg font-bold text-white mt-1" id="durum-laravel">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">PHP</p>
+                        <p class="text-lg font-bold text-white mt-1" id="durum-php">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Debug Modu</p>
+                        <p class="text-lg font-bold mt-1" id="durum-debug">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Boş Disk Alanı</p>
+                        <p class="text-lg font-bold text-white mt-1" id="durum-disk">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Toplam Ürün</p>
+                        <p class="text-lg font-bold text-brandGreen mt-1" id="durum-urun">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Toplam Kategori</p>
+                        <p class="text-lg font-bold text-brandGreen mt-1" id="durum-kategori">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Bugünkü Sipariş</p>
+                        <p class="text-lg font-bold text-brandGold mt-1" id="durum-siparis">-</p>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                        <p class="text-[0.65rem] text-gray-500 uppercase font-bold">Bekleyen Garson Çağrısı</p>
+                        <p class="text-lg font-bold text-amber-400 mt-1" id="durum-garson">-</p>
+                    </div>
+                </div>
+            </section>
 
-Route::post('/api/admin-login', function (Request $request) {
-    $email = $request->input('email');
-    $password = $request->input('password');
+            <!-- CANLI LOGLAR -->
+            <section>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest"><i class="fa-solid fa-scroll text-brandGreen mr-2"></i>Canlı Sistem Logları (Son 200 Satır)</h2>
+                    <button onclick="loglariYenile()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-xs font-bold transition-all"><i class="fa-solid fa-rotate mr-1"></i> Yenile</button>
+                </div>
+                <div class="bg-black border border-gray-800 rounded-xl p-4 max-h-[500px] overflow-y-auto">
+                    <pre id="log-icerik" class="font-mono text-xs text-gray-400 whitespace-pre-wrap break-words">Loglar yükleniyor...</pre>
+                </div>
+            </section>
 
-    $user = DB::table('users')->where('email', $email)->first();
-    if ($user && Hash::check($password, $user->password)) {
-        return response()->json([
-            'durum' => 'basarili',
-            'token' => base64_encode($user->email . ':' . now()->timestamp),
-        ]);
-    }
+            <!-- HIZLI ERİŞİM: ADMİN PANEL İÇERİĞİ -->
+            <section>
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4"><i class="fa-solid fa-toolbox text-brandGreen mr-2"></i>Hızlı İşlemler</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <a href="/admin" class="bg-gray-900 border border-gray-800 hover:border-brandGreen rounded-xl p-5 flex flex-col items-center gap-2 transition-all">
+                        <i class="fa-solid fa-burger text-brandGreen text-xl"></i>
+                        <span class="text-xs font-bold text-gray-300">Ürün Yönetimi</span>
+                    </a>
+                    <a href="/admin" class="bg-gray-900 border border-gray-800 hover:border-brandGreen rounded-xl p-5 flex flex-col items-center gap-2 transition-all">
+                        <i class="fa-solid fa-cash-register text-brandGreen text-xl"></i>
+                        <span class="text-xs font-bold text-gray-300">Kasa & Masalar</span>
+                    </a>
+                    <a href="/admin" class="bg-gray-900 border border-gray-800 hover:border-brandGreen rounded-xl p-5 flex flex-col items-center gap-2 transition-all">
+                        <i class="fa-solid fa-sliders text-brandGreen text-xl"></i>
+                        <span class="text-xs font-bold text-gray-300">Site Ayarları</span>
+                    </a>
+                    <a href="/mutfak" class="bg-gray-900 border border-gray-800 hover:border-brandGreen rounded-xl p-5 flex flex-col items-center gap-2 transition-all">
+                        <i class="fa-solid fa-kitchen-set text-brandGreen text-xl"></i>
+                        <span class="text-xs font-bold text-gray-300">Mutfak Ekranı</span>
+                    </a>
+                </div>
+                <p class="text-[0.65rem] text-gray-600 mt-4">Not: Ürün/kategori/kasa gibi detaylı işlemler için normal Admin Panel'i kullanın — bu ekran sadece sistem sağlığını izlemek ve teknik sorun gidermek içindir.</p>
+            </section>
 
-    return response()->json(['durum' => 'hata', 'mesaj' => 'E-posta veya şifre hatalı!'], 401);
-});
+        </main>
+    </div>
 
-// Admin Şifre Güncelleme Route'u
-Route::post('/api/admin-sifre-guncelle', function (Request $request) {
-    $email = $request->input('email');
-    $eskiSifre = $request->input('eski_sifre');
-    $yeniSifre = $request->input('yeni_sifre');
-
-    $user = DB::table('users')->where('email', $email)->first();
-    if (!$user || !Hash::check($eskiSifre, $user->password)) {
-        return response()->json(['durum' => 'hata', 'mesaj' => 'Mevcut şifre hatalı!'], 401);
-    }
-
-    DB::table('users')->where('email', $email)->update([
-        'password' => Hash::make($yeniSifre)
-    ]);
-
-    return response()->json(['durum' => 'basarili', 'mesaj' => 'Şifre başarıyla güncellendi!']);
-});
-
-Route::get('/sistemi-sifirla', function() {
-    try { DB::statement('ALTER TABLE t_urunkart ADD COLUMN aciklama TEXT NULL'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_urunkart ADD COLUMN kalori INT NULL'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_urunkart ADD COLUMN sure INT NULL'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_urunkart ADD COLUMN is_gluten_free BOOLEAN DEFAULT 0'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_urunkart ADD COLUMN alerjen TEXT NULL'); } catch(\Exception $e) {}
-
-    return "Veritabani basariyla guncellendi!";
-});
-
-// Yeni Kolonlar İçin Bir Kerelik Route
-Route::get('/sistemi-guncelle-v2', function() {
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN logo_url VARCHAR(255) NULL'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN imza_metni VARCHAR(255) NULL'); } catch(\Exception $e) {}
-    return "Veritabani basariyla guncellendi (logo_url, imza_metni eklendi)!";
-});
-
-// Güvenlik ve GPS Ayarları İçin Bir Kerelik Route (v3)
-Route::get('/sistemi-guncelle-v3', function() {
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN guvenlik_suresi_dk INT DEFAULT 30'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN gps_dogrulama_aktif TINYINT(1) DEFAULT 0'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN gps_enlem DOUBLE NULL'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN gps_boylam DOUBLE NULL'); } catch(\Exception $e) {}
-    try { DB::statement('ALTER TABLE t_ayarlar ADD COLUMN gps_max_mesafe INT DEFAULT 200'); } catch(\Exception $e) {}
-    return "Veritabani basariyla guncellendi (guvenlik ayarlari eklendi)!";
-});
-
-// Kapsamlı Güvenli Veritabanı Güncelleme Route'u (v4)
-Route::get('/sistemi-guncelle-v4', function() {
-    if (!Schema::hasTable('t_ayarlar')) {
-        Schema::create('t_ayarlar', function ($table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
-
-    $kolonlar = [
-        'sirket_adi' => "VARCHAR(255) NULL",
-        'slogan' => "VARCHAR(255) NULL",
-        'alt_aciklama' => "TEXT NULL",
-        'wifi_sifresi' => "VARCHAR(255) NULL",
-        'telefon' => "VARCHAR(255) NULL",
-        'adres' => "TEXT NULL",
-        'yorum_linki' => "VARCHAR(500) NULL",
-        'vitrin_gorsel_url' => "VARCHAR(255) NULL",
-        'logo_url' => "VARCHAR(255) NULL",
-        'imza_metni' => "VARCHAR(255) NULL",
-        'guvenlik_suresi_dk' => "INT DEFAULT 30",
-        'gps_dogrulama_aktif' => "TINYINT(1) DEFAULT 0",
-        'gps_enlem' => "DOUBLE NULL",
-        'gps_boylam' => "DOUBLE NULL",
-        'gps_max_mesafe' => "INT DEFAULT 200",
-    ];
-
-    foreach ($kolonlar as $isim => $tip) {
-        try { DB::statement("ALTER TABLE t_ayarlar ADD COLUMN {$isim} {$tip}"); } catch (\Exception $e) {}
-    }
-
-    if (DB::table('t_ayarlar')->count() === 0) {
-        DB::table('t_ayarlar')->insert([
-            'sirket_adi' => 'Center Cafe & Bistro',
-            'wifi_sifresi' => 'center2026',
-            'guvenlik_suresi_dk' => 30,
-            'gps_max_mesafe' => 200,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    }
-
-    return "t_ayarlar tablosu kontrol edildi, eksik kolonlar eklendi ve hazır hale getirildi!";
-});
-
-// Masaüstü Token Tablosu İçin Bir Kerelik Route (v5)
-Route::get('/sistemi-guncelle-v5', function() {
-    if (!Schema::hasTable('desktop_tokens')) {
-        Schema::create('desktop_tokens', function ($table) {
-            $table->id();
-            $table->string('token', 100)->unique();
-            $table->string('email');
-            $table->timestamp('last_used_at')->nullable();
-            $table->timestamps();
-        });
-    }
-    return "desktop_tokens tablosu hazır!";
-});
-
-Route::get('/api/menu', function () {
-    $urunler = DB::table('t_urunkart')->orderBy('Sira')->get();
-
-    foreach ($urunler as $urun) {
-        $grup = mb_strtoupper(trim($urun->UrunGrubu ?? ''), 'UTF-8');
-
-        if (str_contains($grup, 'SAHANDA')) {
-            $urun->UrunGrubu = 'SAHANDA';
-        } elseif (str_contains($grup, 'OMLET')) {
-            $urun->UrunGrubu = 'OMLET';
-        } elseif (str_contains($grup, 'KENDİ KAHVALTINI YARAT')) {
-            $urun->UrunGrubu = 'KENDİ KAHVALTINI YARAT';
-        } elseif ($grup === 'KAHVALTILAR' || str_contains($grup, 'KAHVALTI')) {
-            $urun->UrunGrubu = 'KAHVALTILAR';
+    <script>
+        function showToast(msg, color = 'bg-brandGreen') {
+            const container = document.getElementById('mikale-toast-container');
+            const toast = document.createElement('div');
+            toast.className = `${color} text-brandDark px-5 py-3 rounded-lg shadow-2xl font-bold text-sm pointer-events-auto`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
 
-        elseif (str_contains($grup, 'SÜTLÜ TATLI') || str_contains($grup, 'SUTLU TATLI')) { $urun->UrunGrubu = 'SÜTLÜ TATLI'; }
-        elseif (str_contains($grup, 'PASTALAR') || str_contains($grup, 'PASTA')) { $urun->UrunGrubu = 'PASTALAR'; }
-        elseif (str_contains($grup, 'ŞERBETLİ TATLI') || str_contains($grup, 'SERBETLI')) { $urun->UrunGrubu = 'ŞERBETLİ TATLI'; }
-        elseif (str_contains($grup, 'KİLOLUK ÜRÜNLER') || str_contains($grup, 'KILOLUK')) { $urun->UrunGrubu = 'KİLOLUK ÜRÜNLER'; }
-        elseif (str_contains($grup, 'KEKLER')) { $urun->UrunGrubu = 'KEKLER'; }
-        elseif (str_contains($grup, 'İLAVELER') || str_contains($grup, 'ILAVELER')) { $urun->UrunGrubu = 'İLAVELER'; }
-        elseif ($grup === 'TATLILAR') { $urun->UrunGrubu = 'TATLILAR'; }
-
-        elseif (str_contains($grup, 'DÜNYA KAHVELERİ') || str_contains($grup, 'DUNYA KAHVELERI')) { $urun->UrunGrubu = 'DÜNYA KAHVELERİ'; }
-        elseif (str_contains($grup, 'BİTKİ ÇAYI') || str_contains($grup, 'BITKI CAYI')) { $urun->UrunGrubu = 'BİTKİ ÇAYI'; }
-        elseif ($grup === 'SICAK İÇECEKLER') { $urun->UrunGrubu = 'SICAK İÇECEKLER'; }
-
-        elseif (str_contains($grup, 'SOĞUK KAHVELER') || str_contains($grup, 'SOGUK KAHVELER')) { $urun->UrunGrubu = 'SOĞUK KAHVELER'; }
-        elseif (str_contains($grup, 'MEŞRUBATLAR') || str_contains($grup, 'MESRUBATLAR')) { $urun->UrunGrubu = 'MEŞRUBATLAR'; }
-        elseif (str_contains($grup, 'FROZEN')) { $urun->UrunGrubu = 'FROZEN'; }
-        elseif (str_contains($grup, 'SMOOTHIE') || str_contains($grup, 'SMOOTHİE')) { $urun->UrunGrubu = 'SMOOTHIE'; }
-        elseif (str_contains($grup, 'MILKSHAKE')) { $urun->UrunGrubu = 'MILKSHAKE'; }
-        elseif (str_contains($grup, 'FRAPPE')) { $urun->UrunGrubu = 'FRAPPE'; }
-        elseif (str_contains($grup, 'KOKTEYL & DETOX')) { $urun->UrunGrubu = 'KOKTEYL & DETOX'; }
-        elseif ($grup === 'SOĞUK İÇECEKLER') { $urun->UrunGrubu = 'SOĞUK İÇECEKLER'; }
-
-        elseif ($grup === 'DONDURMALAR') { $urun->UrunGrubu = 'DONDURMALAR'; }
-
-        elseif (str_contains($grup, 'GÖZLEMELER') || str_contains($grup, 'GOZLEMELER')) { $urun->UrunGrubu = 'GÖZLEMELER'; }
-        elseif (str_contains($grup, 'TOSTLAR')) { $urun->UrunGrubu = 'TOSTLAR'; }
-        elseif (str_contains($grup, 'KÖYLÜM') || str_contains($grup, 'BAZLAMA')) { $urun->UrunGrubu = 'KÖYLÜM (BAZLAMA) TOSTLAR'; }
-        elseif (str_contains($grup, 'KÖY EKMEĞİ')) { $urun->UrunGrubu = 'KÖY EKMEĞİ TOSTLAR'; }
-        elseif (str_contains($grup, 'APERATİFLER') || str_contains($grup, 'APERATIFLER')) { $urun->UrunGrubu = 'APERATİFLER'; }
-        elseif ($grup === 'GÖZLEME & TOST') { $urun->UrunGrubu = 'GÖZLEME & TOST'; }
-    }
-
-    return response()->json([
-        'kategoriler' => DB::table('t_urungrubu')->orderBy('Sirano')->get(),
-        'urunler' => $urunler
-    ]);
-});
-
-// KATEGORİ YÖNETİMİ API ROTALARI
-Route::get('/api/kategoriler', function () {
-    try {
-        $kategoriler = DB::table('t_urungrubu')->orderBy('Sirano')->get();
-        return response()->json($kategoriler);
-    } catch (\Exception $e) {
-        return response()->json([]);
-    }
-});
-
-Route::post('/api/kategori-ekle', function (Request $request) {
-    try {
-        $grupAdi = $request->input('grup_adi');
-        $anaGrup = $request->input('ana_grup', $grupAdi);
-
-        if (!$grupAdi) {
-            return response()->json(['durum' => 'hata', 'mesaj' => 'Kategori adı boş olamaz!']);
+        function getAuthHeaders() {
+            return {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Authorization': localStorage.getItem('mikale_token') || ''
+            };
         }
 
-        $maxId   = DB::table('t_urungrubu')->max('UrunGrubu_id') ?? 0;
-        $maxSira = DB::table('t_urungrubu')->max('Sirano') ?? 0;
-
-        DB::table('t_urungrubu')->insert([
-            'UrunGrubu_id' => $maxId + 1,
-            'Sirano'       => $maxSira + 1,
-            'Urungrubu'    => mb_strtoupper($grupAdi, 'UTF-8'),
-            'AnaGrup'      => mb_strtoupper($anaGrup, 'UTF-8'),
-        ]);
-
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Kategori başarıyla eklendi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-Route::post('/api/kategori-sil/{id}', function ($id) {
-    try {
-        DB::table('t_urungrubu')->where('id', $id)->delete();
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Kategori silindi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-// Kategori Sıralama Route'u
-Route::post('/api/kategori-sirala', function (Request $request) {
-    try {
-        $siraliIdler = $request->input('sirali_idler', []);
-        foreach ($siraliIdler as $index => $id) {
-            DB::table('t_urungrubu')->where('id', $id)->update(['Sirano' => $index + 1]);
-        }
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Kategori sıralaması güncellendi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-Route::post('/api/urun-ekle', function (Request $request) {
-    try {
-        $resimYolu = null;
-
-        if ($request->hasFile('resim')) {
-            $dosya = $request->file('resim');
-            $isim = time() . '_' . $dosya->getClientOriginalName();
-            $dosya->move(public_path('images/urunler/images'), $isim);
-            $resimYolu = '/images/urunler/images/' . $isim;
+        function checkLoginState() {
+            const token = localStorage.getItem('mikale_token');
+            if (token) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                verileriYukle();
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('app-content').classList.add('hidden');
+            }
         }
 
-        DB::table('t_urunkart')->insert([
-            'UrunAd' => $request->input('ad'),
-            'UrunGrubu' => $request->input('kategori'),
-            'FixFiyat' => $request->input('fiyat'),
-            'Sira' => $request->input('sira') ?? 1,
-            'resim_url' => $resimYolu,
-            'aciklama' => $request->input('aciklama'),
-            'alerjen' => $request->input('alerjen'),
-            'kalori' => $request->input('kalori'),
-            'sure' => $request->input('sure'),
-            'is_gluten_free' => $request->input('is_gluten_free') ?? 0,
-        ]);
+        function girisYap() {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            const errorMsg = document.getElementById('login-error');
+            errorMsg.classList.add('hidden');
 
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Urun basariyla eklendi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-Route::post('/api/urun-sil/{id}', function ($id) {
-    try {
-        $urun = DB::table('t_urunkart')->where('id', $id)->first();
-        if ($urun) {
-            DB::table('t_urunkart')->where('id', $id)->delete();
-            return response()->json(['durum' => 'basarili', 'mesaj' => 'Urun silindi!']);
-        }
-        return response()->json(['durum' => 'hata', 'mesaj' => 'Urun bulunamadi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-Route::post('/api/urun-guncelle/{id}', function (Request $request, $id) {
-    try {
-        $guncellemeVerileri = [
-            'UrunAd' => $request->input('ad'),
-            'UrunGrubu' => $request->input('kategori'),
-            'FixFiyat' => $request->input('fiyat'),
-            'Sira' => $request->input('sira') ?? 1,
-            'aciklama' => $request->input('aciklama'),
-            'alerjen' => $request->input('alerjen'),
-            'kalori' => $request->input('kalori'),
-            'sure' => $request->input('sure'),
-            'is_gluten_free' => $request->input('is_gluten_free') ?? 0,
-        ];
-
-        if ($request->hasFile('resim')) {
-            $dosya = $request->file('resim');
-            $isim = time() . '_' . $dosya->getClientOriginalName();
-            $dosya->move(public_path('images/urunler/images'), $isim);
-            $guncellemeVerileri['resim_url'] = '/images/urunler/images/' . $isim;
+            fetch('/api/admin-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: JSON.stringify({ email, password: pass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.durum === 'basarili') {
+                    localStorage.setItem('mikale_token', "Bearer " + data.token);
+                    checkLoginState();
+                } else {
+                    errorMsg.textContent = data.mesaj || "E-posta veya şifre hatalı!";
+                    errorMsg.classList.remove('hidden');
+                }
+            })
+            .catch(() => {
+                errorMsg.textContent = "Sunucuya bağlanılamadı!";
+                errorMsg.classList.remove('hidden');
+            });
         }
 
-        DB::table('t_urunkart')->where('id', $id)->update($guncellemeVerileri);
-
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Urun basariyla guncellendi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-// Sipariş Verme Route'u (web_orders tablosuna kayıt) ve Rate Limit
-Route::post('/api/siparis-ver', function (Request $request) {
-    try {
-        $masaNo = $request->input('masa_no');
-        $urunler = $request->input('urunler', []);
-
-        if (empty($urunler)) {
-            return response()->json(['status' => 'error', 'message' => 'Sepet boş, sipariş oluşturulamadı.'], 400);
+        function cikisYap() {
+            localStorage.removeItem('mikale_token');
+            checkLoginState();
         }
 
-        $simdi = now();
+        function verileriYukle() {
+            fetch('/api/mikale-durum', { headers: getAuthHeaders() })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.basarili) return;
+                    document.getElementById('durum-laravel').textContent = data.laravel_versiyon;
+                    document.getElementById('durum-php').textContent = data.php_versiyon;
+                    const debugEl = document.getElementById('durum-debug');
+                    debugEl.textContent = data.debug_modu;
+                    debugEl.className = data.debug_modu.includes('RİSKLİ') ? 'text-lg font-bold text-red-400 mt-1' : 'text-lg font-bold text-brandGreen mt-1';
+                    document.getElementById('durum-disk').textContent = data.disk_bos_alan_gb + ' GB';
+                    document.getElementById('durum-urun').textContent = data.toplam_urun;
+                    document.getElementById('durum-kategori').textContent = data.toplam_kategori;
+                    document.getElementById('durum-siparis').textContent = data.bugunku_siparis;
+                    document.getElementById('durum-garson').textContent = data.bekleyen_garson_cagrisi;
+                })
+                .catch(() => showToast('Sistem durumu alınamadı!', 'bg-red-500'));
 
-        foreach ($urunler as $urun) {
-            DB::table('web_orders')->insert([
-                'masa_isim'     => 'Masa ' . $masaNo,
-                'urun_adi'      => $urun['UrunAd'] ?? 'Bilinmeyen Ürün',
-                'adet'          => $urun['adet'] ?? 1,
-                'fiyat'         => $urun['FixFiyat'] ?? 0,
-                'ozellikler'    => null,
-                'siparis_notu'  => null,
-                'siparis_saati' => $simdi,
-                'pulled'        => 0,
-                'created_at'    => $simdi,
-                'updated_at'    => $simdi,
-            ]);
+            loglariYenile();
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Siparişiniz alındı!']);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    }
-})->middleware('throttle:20,1');
-
-Route::get('/api/ayarlar', function () {
-    try {
-        $ayar = DB::table('t_ayarlar')->first();
-        if (!$ayar) {
-            return response()->json([
-                'sirket_adi' => 'Center Cafe',
-                'wifi_sifresi' => 'center2026'
-            ]);
-        }
-        return response()->json($ayar);
-    } catch (\Exception $e) {
-        return response()->json(['sirket_adi' => 'Center Cafe']);
-    }
-});
-
-Route::post('/api/ayarlar-guncelle', function (Request $request) {
-    try {
-        $ayar = DB::table('t_ayarlar')->first();
-        $vitrinGorselYolu = $ayar->vitrin_gorsel_url ?? '/images/OIP.jpg.webp';
-        $logoYolu = $ayar->logo_url ?? null;
-
-        if ($request->input('gorsel_sil') == '1') {
-            $vitrinGorselYolu = '/images/OIP.jpg.webp';
-        } elseif ($request->hasFile('vitrin_gorsel')) {
-            $dosya = $request->file('vitrin_gorsel');
-            $isim = time() . '_' . $dosya->getClientOriginalName();
-            $dosya->move(public_path('images'), $isim);
-            $vitrinGorselYolu = '/images/' . $isim;
+        function loglariYenile() {
+            fetch('/api/mikale-loglar', { headers: getAuthHeaders() })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('log-icerik').textContent = data.log || 'Log bulunamadı.';
+                })
+                .catch(() => {
+                    document.getElementById('log-icerik').textContent = 'Loglar yüklenirken hata oluştu.';
+                });
         }
 
-        if ($request->input('logo_sil') == '1') {
-            $logoYolu = null;
-        } elseif ($request->hasFile('logo')) {
-            $dosya = $request->file('logo');
-            $isim = 'logo_' . time() . '_' . $dosya->getClientOriginalName();
-            $dosya->move(public_path('images'), $isim);
-            $logoYolu = '/images/' . $isim;
-        }
-
-        DB::table('t_ayarlar')->updateOrInsert(
-            ['id' => 1],
-            [
-                'sirket_adi' => $request->input('sirket_adi', 'Center Cafe'),
-                'slogan' => $request->input('slogan', 'LEZZETİN MERKEZİ'),
-                'alt_aciklama' => $request->input('alt_aciklama', 'Dünya mutfağından seçkin lezzetler, taptaze kahveler ve unutulmaz anlar için doğru yerdesiniz.'),
-                'wifi_sifresi' => $request->input('wifi_sifresi', 'center2026'),
-                'telefon' => $request->input('telefon'),
-                'adres' => $request->input('adres'),
-                'yorum_linki' => $request->input('yorum_linki'),
-                'vitrin_gorsel_url' => $vitrinGorselYolu,
-                'logo_url' => $logoYolu,
-                'imza_metni' => $request->input('imza_metni', 'Mikale Yazılım'),
-                'guvenlik_suresi_dk' => $request->input('guvenlik_suresi_dk', 30),
-                'gps_dogrulama_aktif' => $request->input('gps_dogrulama_aktif', 0),
-                'gps_enlem' => $request->input('gps_enlem') !== null && $request->input('gps_enlem') !== '' ? $request->input('gps_enlem') : null,
-                'gps_boylam' => $request->input('gps_boylam') !== null && $request->input('gps_boylam') !== '' ? $request->input('gps_boylam') : null,
-                'gps_max_mesafe' => $request->input('gps_max_mesafe', 200),
-            ]
-        );
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Vitrin ve kurumsal ayarlar başarıyla güncellendi!']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-Route::get('/mutfak', function () {
-    return view('mutfak');
-});
-
-Route::get('/api/mutfak/siparisler', function () {
-    try {
-        return response()->json(DB::table('web_orders')->orderBy('id', 'desc')->get());
-    } catch (\Exception $e) {
-        return response()->json([]);
-    }
-});
-
-Route::post('/api/mutfak/siparis-durum/{id}', function ($id) {
-    try {
-        DB::table('web_orders')->where('id', $id)->delete();
-        return response()->json(['durum' => 'basarili', 'mesaj' => 'Siparis tamamlandi.']);
-    } catch (\Exception $e) {
-        return response()->json(['durum' => 'hata', 'mesaj' => $e->getMessage()]);
-    }
-});
-
-Route::get('/api/mikale-loglar', function () {
-    $path = storage_path('logs/laravel.log');
-    if (!file_exists($path)) {
-        return response()->json(['basarili' => true, 'log' => 'Henüz log dosyası oluşmamış.']);
-    }
-    $icerik = file_get_contents($path);
-    $satirlar = explode("\n", $icerik);
-    $sonSatirlar = array_slice($satirlar, -200);
-    return response()->json(['basarili' => true, 'log' => implode("\n", $sonSatirlar)]);
-});
+        document.addEventListener('DOMContentLoaded', checkLoginState);
+    </script>
+</body>
+</html>

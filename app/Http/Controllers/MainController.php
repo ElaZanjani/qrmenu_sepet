@@ -10,6 +10,7 @@ use App\Models\UrunKart;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use App\Models\Form;
 
 class MainController extends Controller
@@ -40,7 +41,7 @@ class MainController extends Controller
             $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
 
             if (in_array($lang, $availablelanguages)) {
-                /*    switch($lang)
+                /*      switch($lang)
                 {
                     case 'en': @$localeId=2;
                     case 'ru': @$localeId=3;
@@ -221,5 +222,33 @@ class MainController extends Controller
         //  Store data in database
         Form::create($request->all());
         return back()->with('success', 'Görüş ve önerileriniz Kaliteci Unlu Mamüllerine iletildi..');
+    }
+
+    public function menuGetir()
+    {
+        $urunler = DB::table('t_urunkart')
+            ->leftJoin('t_urungrubu', 't_urunkart.UrunGrubu_id', '=', 't_urungrubu.UrunGrubu_id')
+            ->select('t_urunkart.*', DB::raw('COALESCE(t_urungrubu.Urungrubu, t_urunkart.UrunGrubu) as UrunGrubu'))
+            ->orderBy('t_urunkart.Sira')
+            ->get();
+
+        return response()->json([
+            'kategoriler' => DB::table('t_urungrubu')->orderBy('Sirano')->get(),
+            'urunler' => $urunler
+        ]);
+    }
+
+    public function ayarlarGetir()
+    {
+        $ayar = DB::table('t_ayar')->first();
+        if (!$ayar) {
+            return response()->json(['sirket_adi' => 'Center Cafe', 'wifi_sifresi' => 'center2026']);
+        }
+        return response()->json($ayar);
+    }
+
+    public function kategorilerGetir()
+    {
+        return response()->json(DB::table('t_urungrubu')->orderBy('Sirano')->get());
     }
 }

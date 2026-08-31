@@ -81,6 +81,42 @@ class DesktopSyncController extends Controller
         ]);
     }
 
+    // POST /api/v1/desktop/sync/categories  (Kasa -> Web)
+    public function syncCategoriesPush(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'urun_gruplari' => 'required|array',
+            'urun_gruplari.*.UrunGrubu_id' => 'required|integer',
+            'urun_gruplari.*.Urungrubu' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        foreach ($request->input('urun_gruplari') as $grup) {
+            DB::table('t_urungrubu')->updateOrInsert(
+                ['UrunGrubu_id' => $grup['UrunGrubu_id']],
+                [
+                    'Urungrubu' => mb_strtoupper($grup['Urungrubu'], 'UTF-8'),
+                    'AnaGrup'   => mb_strtoupper($grup['AnaGrup'] ?? $grup['Urungrubu'], 'UTF-8'),
+                    'Sirano'    => $grup['Sirano'] ?? 99,
+                ]
+            );
+        }
+
+        return response()->json(['success' => true, 'message' => 'Kategoriler senkronize edildi.']);
+    }
+
+    // GET /api/v1/desktop/sync/categories  (Web -> Kasa)
+    public function syncCategoriesPull()
+    {
+        return response()->json([
+            'success' => true,
+            'kategoriler' => DB::table('t_urungrubu')->orderBy('Sirano')->get(),
+        ]);
+    }
+
     // POST /api/v1/desktop/sync/kasa  (Kasa -> Web: Z-Raporu / gün sonu cirosu)
     public function syncKasa(Request $request)
     {

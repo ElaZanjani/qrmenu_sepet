@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
 class DesktopAuthController extends Controller
 {
@@ -36,14 +34,7 @@ class DesktopAuthController extends Controller
             ], 401);
         }
 
-        $token = Str::random(60);
-
-        DB::table('desktop_tokens')->insert([
-            'token' => $token,
-            'email' => $user->email,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $token = $user->createToken('desktop-pos', ['*'], now()->addDays(30))->plainTextToken;
 
         return response()->json([
             'status' => 'success',
@@ -58,8 +49,7 @@ class DesktopAuthController extends Controller
 
     public function logout(Request $request)
     {
-        $token = $request->bearerToken();
-        DB::table('desktop_tokens')->where('token', $token)->delete();
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['success' => true, 'message' => 'Oturum kapatıldı.']);
     }
