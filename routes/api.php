@@ -5,15 +5,9 @@ use App\Http\API\DesktopSyncController;
 use App\Http\Controllers\Auth\DesktopAuthController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\RestaurantOpsController;
-<<<<<<< HEAD
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-=======
-use App\Http\Controllers\SiparisController;
-use App\Models\User;
-use Illuminate\Http\Request;
->>>>>>> fd9dde20b3144d302ac6c6058b121887747e1d3b
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +17,6 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-<<<<<<< HEAD
 // Müşteri tarafı - Herkese açık rotalar
 Route::post('/garson-cagir', [RestaurantOpsController::class, 'garsonCagir']);
 Route::get('/menu', [MainController::class, 'menuGetir']);
@@ -48,7 +41,6 @@ Route::post('/siparis-ver', function (Request $request) {
     $simdi = now();
 
     foreach ($sepet as $urun) {
-        // İstemciden gelen fiyata GÜVENMİYORUZ, gerçeğini veritabanından çekiyoruz
         $gercekUrun = DB::table('t_urunkart')->where('UrunAd', $urun['UrunAd'] ?? null)->first();
         if (!$gercekUrun) continue;
 
@@ -60,7 +52,7 @@ Route::post('/siparis-ver', function (Request $request) {
             'masa_isim'     => 'Masa ' . $masaNo,
             'urun_adi'      => $gercekUrun->UrunAd,
             'adet'          => $adet,
-            'fiyat'         => $fiyat, // Veritabanından alınan güvenli fiyat
+            'fiyat'         => $fiyat,
             'ozellikler'    => null,
             'siparis_notu'  => null,
             'siparis_saati' => $simdi,
@@ -76,7 +68,7 @@ Route::post('/siparis-ver', function (Request $request) {
 // TEK admin login noktası (Sanctum Token Üreten)
 Route::post('/admin-login', function (Request $request) {
     $request->validate([
-        'email' => 'required|email', 
+        'email' => 'required|email',
         'password' => 'required'
     ]);
 
@@ -93,56 +85,16 @@ Route::post('/admin-login', function (Request $request) {
         'token' => $token,
         'user' => $user,
     ]);
-=======
-// --- 3) Gerçek Sanctum Token Üreten Admin Login Route'u ---
-Route::post('/admin-login', function (Request $request) {
-    $user = User::where('email', $request->email)->first();
-
-    if (!$user || !Hash::check($request->password, $user->password)) {
-        return response()->json(['message' => 'Email veya şifre hatalı'], 401);
-    }
-
-    // İsteğe bağlı olarak eski token'ları temizleyebilirsin:
-    // $user->tokens()->delete();
-
-    $token = $user->createToken('admin-panel', ['*'], now()->addDays(7))->plainTextToken;
-
-    return response()->json([
-        'user' => $user,
-        'token' => $token,
-    ]);
-});
-
-// --- 4) Korunacak (Auth:Sanctum ile Sarpılmış) Admin Rotaları ---
-Route::middleware('auth:sanctum')->group(function () {
-    // --- 6) Gerçek Token Silen Logout Route'u ---
-    Route::post('/logout', function (Request $request) {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Çıkış yapıldı']);
-    });
-
-    // --- Admin Panel - Masa / Kasa / Garson yönetimi ---
-    Route::prefix('admin')->group(function () {
-        Route::get('/masalar', [RestaurantOpsController::class, 'masalariListele']);
-        Route::post('/masalar', [RestaurantOpsController::class, 'masaEkle']);
-        Route::post('/masalar/{id}/durum', [RestaurantOpsController::class, 'masaDurumDegistir']);
-        Route::delete('/masalar/{id}', [RestaurantOpsController::class, 'masaSil']);
-        Route::get('/garson-cagrilari', [RestaurantOpsController::class, 'garsonCagrilariGetir']);
-        Route::post('/gun-sonu', [RestaurantOpsController::class, 'gunSonuAl']);
-    });
->>>>>>> fd9dde20b3144d302ac6c6058b121887747e1d3b
 });
 
 // --- KORUNAN (Auth:Sanctum ile Sıkılaştırılmış) Admin ve Yazma İşlemleri Rotaları ---
 Route::middleware('auth:sanctum')->group(function () {
-    
-    // Çıkış yapma
+
     Route::post('/logout', function (Request $request) {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Çıkış yapıldı']);
     });
 
-    // Mikale özel paneli - Sistem durumu
     Route::get('/mikale-durum', function () {
         return response()->json([
             'basarili' => true,
@@ -159,7 +111,6 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // Mikale özel paneli - Canlı log görüntüleyici (artık token korumalı)
     Route::get('/mikale-loglar', function () {
         $path = storage_path('logs/laravel.log');
         if (!file_exists($path)) {
@@ -171,7 +122,6 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['basarili' => true, 'log' => implode("\n", $sonSatirlar)]);
     });
 
-    // Admin şifre güncelleme
     Route::post('/admin-sifre-guncelle', function (Request $request) {
         $email = $request->input('email');
         $eskiSifre = $request->input('eski_sifre');
@@ -189,7 +139,6 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['durum' => 'basarili', 'mesaj' => 'Şifre başarıyla güncellendi!']);
     });
 
-    // Yeni admin/kullanıcı hesabı oluşturma
     Route::post('/admin-yeni-kullanici', function (Request $request) {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -214,7 +163,6 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['durum' => 'basarili', 'mesaj' => 'Yeni kullanıcı başarıyla eklendi!']);
     });
 
-    // Kategori yönetimi
     Route::post('/kategori-ekle', function (Request $request) {
         try {
             $grupAdi = $request->input('grup_adi');
@@ -261,7 +209,6 @@ Route::middleware('auth:sanctum')->group(function () {
         }
     });
 
-    // Güvenli Ürün Ekleme (Validasyonlu ve uniqid isimli resim yükleme)
     Route::post('/urun-ekle', function (Request $request) {
         try {
             $request->validate([
@@ -311,7 +258,6 @@ Route::middleware('auth:sanctum')->group(function () {
         }
     });
 
-    // Güvenli Ürün Güncelleme
     Route::post('/urun-guncelle/{id}', function (Request $request, $id) {
         try {
             $request->validate([
@@ -348,7 +294,6 @@ Route::middleware('auth:sanctum')->group(function () {
         }
     });
 
-    // Güvenli Ayarlar / Logo / Vitrin Güncelleme
     Route::post('/ayarlar-guncelle', function (Request $request) {
         try {
             $request->validate([
@@ -404,7 +349,6 @@ Route::middleware('auth:sanctum')->group(function () {
         }
     });
 
-    // Admin Panel - Masa / Kasa / Garson yönetimi
     Route::prefix('admin')->group(function () {
         Route::get('/masalar', [RestaurantOpsController::class, 'masalariListele']);
         Route::post('/masalar', [RestaurantOpsController::class, 'masaEkle']);
@@ -435,7 +379,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/sync/tables', [DesktopSyncController::class, 'syncTables']);
             Route::post('/sync/menu', [DesktopSyncController::class, 'syncMenuPush']);
             Route::get('/sync/menu', [DesktopSyncController::class, 'syncMenuPull']);
-            // EKLENDİ: Kategori senkronizasyon rotaları
             Route::post('/sync/categories', [DesktopSyncController::class, 'syncCategoriesPush']);
             Route::get('/sync/categories', [DesktopSyncController::class, 'syncCategoriesPull']);
             Route::post('/sync/kasa', [DesktopSyncController::class, 'syncKasa']);
