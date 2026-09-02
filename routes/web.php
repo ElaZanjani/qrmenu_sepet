@@ -69,4 +69,13 @@ Route::get('/api/menu', function () {
         elseif (str_contains($grup, 'GÖZLEMELER') || str_contains($grup, 'GOZLEMELER')) { $urun->UrunGrubu = 'GÖZLEMELER'; }
         elseif (str_contains($grup, 'TOSTLAR')) { $urun->UrunGrubu = 'TOSTLAR'; }
         elseif (str_contains($grup, 'KÖYLÜM') || str_contains($grup, 'BAZLAMA')) { $urun->UrunGrubu = 'KÖYLÜM (BAZLAMA) TOSTLAR'; }
-        elseif (str_contains($grup, 'KÖY EKMEĞİ')) { $urun->UrunGrubu = 'KÖY EKMEĞİ TOSTLAR';
+        elseif (str_contains($grup, 'KÖY EKMEĞİ')) { $urun->UrunGrubu = 'KÖY EKMEĞİ TOSTLAR'; }
+        elseif (str_contains($grup, 'APERATİFLER') || str_contains($grup, 'APERATIFLER')) { $urun->UrunGrubu = 'APERATİFLER'; }
+        elseif ($grup === 'GÖZLEME & TOST') { $urun->UrunGrubu = 'GÖZLEME & TOST'; }
+    }
+
+    return response()->json([
+        'kategoriler' => DB::table('t_urungrubu')->orderBy('Sirano')->get(),
+        'urunler' => $urunler
+    ]);
+});
